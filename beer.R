@@ -1,0 +1,333 @@
+library('XML')
+library('RCurl')
+library('plyr')
+library(Quandl)
+library("quantmod")
+library(stargazer)
+require("xts")
+library('tseries')
+library(RJSONIO)
+require(MASS)
+require(knitr)
+require(rmarkdown)
+library(forecast)
+library(sqldf)
+library(hashmap)
+library(ggplot2)
+library(maps)
+
+#source https://www.kaggle.com/nickhould/craft-cans
+#source https://wallethub.com/edu/happiest-states/6959/
+setwd("/Users/lesterpi/Desktop/Folders/Random Junk/other/craft-cans.zip Folder")
+
+
+#trim leading and trailing whitespace from string s
+trimWhitespace = function (s){
+  s=sub("^\\s+", "", s)
+  s=sub("\\s+$", "", s)
+  return(s)
+}
+
+
+
+#initial load and transform and sanity checks
+beers = read.csv("beers.csv", header = TRUE)
+breweries = read.csv("breweries.csv", header = TRUE)
+colnames(breweries)[1] = "brewery_id"
+head(breweries)
+head(beers)
+beers_sql = sqldf('SELECT * FROM beers WHERE brewery_id=1')
+breweries_sql = sqldf('SELECT * FROM breweries WHERE brewery_id=1')
+
+
+
+
+#data grabbed from fred website
+#used most recent data available, not all were upt to date
+#removed sd, no beer production
+state_h = read.csv("state_income_per_capita.csv")
+state_h$state = as.character(state_h$state)
+state_h$state = trimWhitespace(state_h$state)
+state_h$per_capita_income = as.numeric(state_h$per_capita_income)
+state_h$h = as.numeric(state_h$h)
+state_h$emotional_h = as.numeric(state_h$emotional_h)
+state_h$workplace_h = as.numeric(state_h$workplace_h)
+state_h$env_h = as.numeric(state_h$env_h)
+
+state_h = state_h[order(state_h$state),]
+
+beers_full = merge(beers,breweries,by="brewery_id")
+#style to char for regex extraction later
+beers_full$style = as.character(beers_full$style)
+beers_full$style = trimWhitespace(beers_full$style)
+beers_full$abvPoints = beers_full$abv*100
+head(beers_full)
+
+beers_no_NA = subset(beers_full,!is.na(beers_full$abv))
+
+abv_reg = lm(abvPoints~style,data=beers_full)
+summary(abv_reg)
+ibu_reg = lm(ibu~abvPoints,data=beers_no_NA)
+summary(ibu_reg)
+plot(beers_no_NA$abvPoints,beers_no_NA$ibu,col="lightblue")
+lines(beers_no_NA$abvPoints,ibu_reg$fitted.values,type='l')
+
+abv_state=lm(abvPoints~state,data=beers_full)
+summary(abv_state)
+
+beers_orderby_state = sqldf('SELECT * FROM beers_full ORDER BY state')
+
+#create and organize data
+
+
+
+beers_full_stateAsString = beers_no_NA
+beers_full_stateAsString$state = as.character(beers_full_stateAsString$state)
+beers_full_stateAsString$state = trimWhitespace(beers_full_stateAsString$state)
+beers_full_stateAsString = sqldf('SELECT * FROM beers_full_stateAsString ORDER BY state')
+beers_full_stateAsString$state
+
+#sanity check
+check_AL = sqldf("SELECT * FROM beers_full_stateAsString WHERE state = 'AL'")
+check_AL
+mean_AL = mean(check_AL$abvPoints)
+mean_AL
+summary(abv_state)
+
+#use this data set
+beers_usethis = beers_full_stateAsString
+
+#create hashmap k=state v=avg abv points
+
+#blank hmap template
+key="state"
+value="0"
+hmap_state_abv = hashmap(key,value)
+hmap_state_abv$erase(key)
+
+#fill with state avg abv points data
+i = 1
+end = length(beers_usethis$state)
+while(i <= end){
+  if(i==1){
+    prev = beers_usethis$state[i]
+    tempVals = c()
+  }
+  state = beers_usethis$state[i]
+  curVal = beers_usethis$abvPoints[i]
+  if(state!=prev || i == end){
+    if(i==end){
+      tempVals=c(tempVals,curVal)
+    }
+    key = prev
+    average = mean(tempVals,na.rm=TRUE)
+    if(prev=="WY"){print(tempVals)}
+    value = average
+    if(hmap_state_abv$has_key(prev)){
+      print(paste("key already exists:",key,"at",as.character(i),sep=" "))
+    }
+    else{
+      hmap_state_abv$insert(key,value)
+    }
+    tempVals = c(curVal)
+  }
+  if(state==prev){
+    tempVals = c(tempVals, curVal)
+  }
+  
+  prev=state
+  i = i+1
+}
+
+#sanity check
+hmap_state_abv
+hmap_state_abv$find("AL")
+check_WY = sqldf("SELECT abvPoints FROM beers_usethis WHERE state = 'WY'")
+check_WY
+mean_WY = mean(check_WY$abvPoints)
+mean_WY
+summary(abv_state)
+
+hmap_state_abv
+
+#iterate through states
+i = 1
+#abv_mean ordered by state abreviation
+abv_mean = c()
+while(i <= length(state_h[,2])){
+  abv_mean=c(abv_mean,as.numeric(hmap_state_abv$find(state_h[,2][i])))
+  
+  i=i+1
+}
+
+state_h$abv=abv_mean
+
+#regress suff
+reg = lm(abv_mean~state_h$per_capita_income)
+summary(reg)
+plot(state_h$per_capita_income,abv_mean)
+lines(state_h$per_capita_income,reg$fitted.values,col="red")
+
+reg2 = lm(state_h$per_capita_income~abv_mean)
+summary(reg2)
+plot(abv_mean,state_h$per_capita_income,
+     xlab="ABV Percentage Points",ylab="Per Capita Income",
+     main = "ABV of Craft Beer on Per Capita Income",
+     col="blue3")
+lines(abv_mean,reg2$fitted.values,col="red")
+
+abv_mean
+
+happy_reg = lm(state_h$abv~state_h$h+state_h$emotional_h+state_h$workplace_h+state_h$env_h)
+summary(happy_reg)
+
+#just happiness
+h_reg = lm(state_h$abv~state_h$h)
+summary(h_reg)
+
+#remove insignificant vars
+happy_reg2 = lm(state_h$abv~state_h$h+state_h$emotional_h+state_h$workplace_h)
+summary(happy_reg2)
+happy_reg3 = lm(state_h$abv~state_h$h+state_h$workplace_h)
+summary(happy_reg3)
+workplace_h_reg = lm(state_h$abv~state_h$workplace_h)
+summary(workplace_h_reg)
+
+
+#full
+full_reg = lm(state_h$abv~state_h$per_capita_income+state_h$h+state_h$emotional_h+state_h$workplace_h+state_h$env_h)
+summary(full_reg)
+
+#work+income
+reg3 = lm(state_h$abv~state_h$per_capita_income+state_h$workplace_h)
+summary(reg3)
+
+#explore data
+#state_h=state_h[order(state_h$workplace_h),]
+state_h
+plot(state_h$workplace_h,state_h$abv,
+     xlab="Workplace Happiness Rank",ylab="ABV Points",
+     main = "ABV points on Workplace Happiness",
+     col="blue3")
+lines(state_h$workplace_h,workplace_h_reg$fitted,col="red")
+
+#flip vars
+abv_workplace_reg = lm(state_h$workplace_h~abv_mean)
+summary(abv_workplace_reg)
+
+#plot map
+
+map = state_h
+map$state_full=as.character(map$state_full)
+map$state_full=trimWhitespace(map$state_full)
+map$state_full=tolower(map$state_full)
+map$region = map$state_full
+
+all_states <- map_data("state")
+map=merge(map,all_states,by="region")
+map
+map <- map[map$region!="district of columbia",]
+map=map[order(map$order),]
+
+
+
+p <- ggplot()
+p <- p + geom_polygon(data=map, aes(x=long, y=lat, group = group, fill=map$abv),colour="white"
+) + scale_fill_continuous(low = "thistle2", high = "darkred", guide="colorbar")
+P1 <- p + theme_bw()  + labs(fill = "ABV points" 
+                             ,title = "United States Craft Brew ABV", x="", y="")
+P1 + scale_y_continuous(breaks=c()) + scale_x_continuous(breaks=c()) + theme(panel.border =  element_blank())
+
+P1
+
+p2 <- ggplot()
+p2 <- p2 + geom_polygon(data=map, aes(x=long, y=lat, group = group, fill=map$workplace_h),colour="white"
+) + scale_fill_continuous(low = "thistle2", high = "darkred", guide="colorbar")
+P2 <- p2 + theme_bw()  + labs(fill = "Workplace Happiness" 
+                             ,title = "United States Craft Workplace Happiness", x="", y="")
+P2 + scale_y_continuous(breaks=c()) + scale_x_continuous(breaks=c()) + theme(panel.border =  element_blank())
+
+P2
+
+#find out number of IPAs by state
+#iterate through beer_usethis and count occurances of IPA
+#regress abv on ipa count
+key="state"
+value=0
+hmap_ipa = hashmap(key,value)
+hmap_ipa$erase(key)
+
+#match a regular expression, return true or false
+regexpMatch=function(pattern,string){
+  regexp = regexpr(pattern,string)
+  if(regexp[1]==-1){
+    return(FALSE)
+  }
+  else{
+    return(TRUE)
+  }
+}
+
+#find ipas
+i = 1
+while(i<= length(beers_usethis[,1])){
+  if(regexpMatch("IPA",beers_usethis$style[i])){
+    #does not exist, create
+    if(!hmap_ipa$has_key(beers_usethis$state[i])){
+      hmap_ipa$insert(beers_usethis$state[i],1)
+    }
+    #exists, incr
+    else{
+      temp = hmap_ipa$find(beers_usethis$state[i])
+      temp=temp+1
+      hmap_ipa$insert(beers_usethis$state[i],temp)
+    }
+  }
+  i=i+1
+}
+
+
+
+#find not ipas
+key="state"
+value=0
+hmap_not_ipa = hashmap(key,value)
+hmap_not_ipa$erase(key)
+
+i = 1
+while(i<= length(beers_usethis[,1])){
+  if(!regexpMatch("IPA",beers_usethis$style[i])){
+    #does not exist, create
+    if(!hmap_not_ipa$has_key(beers_usethis$state[i])){
+      hmap_not_ipa$insert(beers_usethis$state[i],1)
+    }
+    #exists, incr
+    else{
+      temp = hmap_not_ipa$find(beers_usethis$state[i])
+      temp=temp+1
+      hmap_not_ipa$insert(beers_usethis$state[i],temp)
+    }
+  }
+  i=i+1
+}
+
+#find ratio of ipa to non ipa
+ipa_df = data.frame(state=character(),ipa=numeric(),not_ipa=numeric(),stringsAsFactors=FALSE)
+i = 1
+while(i <= length(state_h$state)){
+  state = state_h$state[i]
+  ipa = hmap_ipa$find(state)
+  not_ipa = hmap_not_ipa$find(state)
+  row=c(state,ipa,not_ipa)
+  ipa_df[nrow(ipa_df) + 1, ] = row
+  i=i+1
+}
+ipa_df[is.na(ipa_df)] = 0
+ipa_df$ipa=as.numeric(ipa_df$ipa)
+ipa_df$not_ipa=as.numeric(ipa_df$not_ipa)
+ipa_df$ratio=ipa_df$ipa/ipa_df$not_ipa
+
+ipa_df
+
+ipa_reg = lm(state_h$abv~state_h$workplace_h+ipa_df$ratio)
+summary(ipa_reg)

@@ -1,0 +1,52 @@
+state_full,state,per_capita_income,h,emotional_h,workplace_h,env_h
+Alabama, AL,38965,34.15,48,49,44
+Alaska, AK,55940,52.23,18,38,46
+Arizona, AZ,39060,51.51,28,31,38
+Arkansas, AR,39107,38.22,49,11,48
+California, CA,52651,59.96,5,37,6
+Colorado, CO,50410,61.59,3,18,36
+Connecticut, CT,66972,57.04,13,39,12
+Delaware, DE,47662,57.01,21,7,31
+District of Columbia, DC,71496,57.01,8,35,26
+Florida, FL,44101,49.14,29,45,41
+Georgia, GA,40551,47.43,34,47,37
+Hawaii, HI,47753,66.63,2,20,3
+Idaho, ID,37509,60.93,24,3,4
+Illinois, IL,47317.4,52.6,26,41,23
+Indiana, IN,40998,45.94,44,12,33
+Iowa, IA,44971,60.92,14,5,14
+Kansas, KS,45876,54.55,23,15,40
+Kentucky, KY,39641,35.08,50,46,34
+Louisiana, LA,43252,39.03,43,50,50
+Maine, ME,42077,51.32,30,36,27
+Maryland, MD,56127,55.14,16,39,22
+Massachusetts, MA,61032,57.42,15,26,17
+Michigan, MI,42427,44.17,40,24,49
+Minnesota, MN,50541,69.09,1,9,5
+Mississippi, MS,36025,36.05,46,34,51
+Missouri, MO,43958,44.58,41,14,47
+Montana, MT,41280,55.49,25,4,42
+Nebraska, NE,48006,60.65,12,8,18
+Nevada, NV,42185,48.23,35,43,32
+New Hampshire, NH,54817,59.5,7,21,16
+New Jersey, NJ,59782,56.82,6,42,24
+New Mexico, NM,38457,45.02,37,51,43
+New York, NY,57705,52.54,27,44,13
+North Carolina, NC,40656,52.16,32,30,21
+North Dakota, ND,54376,67.95,11,2,1
+Ohio, OH,43478,46.04,42,25,19
+Oklahoma, OK,44272,41.36,47,10,39
+Oregon, OR,42974,51.4,36,16,29
+Pennsylvania, PA,49180,49.98,38,32,9
+Rhode Island, RI,50080,52.37,31,33,15
+South Carolina, SC,38041,47.06,39,29,25
+South Dakota,SD,45002,60.08,9,6,35
+Tennessee, TN,43389,39.96,45,28,45
+Texas, TX,46745,52.23,33,27,20
+Utah, UT,39045,71.02,4,1,2
+Vermont, VT,47864,58.01,10,22,30
+Virginia, VA,52136,56.61,22,23,10
+Washington, WA,51146,59.26,20,13,7
+West Virginia, WV,37047,32.65,51,48,28
+Wisconsin, WI,45617,57.8,19,17,11
+Wyoming, WY,55303,59.24,17,19,8
