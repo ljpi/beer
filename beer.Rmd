@@ -1,10 +1,10 @@
 ---
 title: "An Exploration Into Craft Beers"
 author: "Lester Pi"
-date: "2/1/2017"
+date: "4/4/2017"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 ```{r Setup, echo=FALSE, warning=FALSE, include=FALSE}
 library('XML')
@@ -12,7 +12,6 @@ library('RCurl')
 library('plyr')
 library(Quandl)
 library("quantmod")
-library(stargazer)
 require("xts")
 library('tseries')
 library(RJSONIO)
@@ -28,6 +27,9 @@ library(tcltk)
 ```
 
 
+```{r global_options, echo=FALSE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(fig.path='Figs/')
+```
 
 ```{r set Width, echo=FALSE}
 opts_chunk$set(tidy.opts = list(width.cutoff = 60), tidy = TRUE)
@@ -43,7 +45,7 @@ Some questions I wanted to look into is if different properties of the beer has 
 
 You might ask, "Wouldn't alcohol consumption be a better indicator for economic and social environment?". Well, I considered that, but the answer seemed a bit too obvious and this data can tell a more interesting story.
 
-I acknowledge that the data is not perfect. The data used is the most up to date I could find at the time. For the purpose of exploration of curiousity, I will not focus too much on data quality.
+I acknowledge that the data is not perfect and purposely stuck with the Kaggle data. The data used is the most up to date I could find at the time. For the purpose of exploration of curiousity, I will not focus too much on data quality.
 
 \newpage
 #A Look Into Craft Beers Statistics
@@ -53,7 +55,7 @@ I acknowledge that the data is not perfect. The data used is the most up to date
 #source https://www.kaggle.com/nickhould/craft-cans
 #source https://wallethub.com/edu/happiest-states/6959/
 #source FRED
-setwd("/Users/lesterpi/Desktop/Folders/Random Junk/other/craft-cans.zip Folder")
+setwd("C:/cygwin64/home/Lester/beer")
 
 
 #trim leading and trailing whitespace from string s
@@ -129,20 +131,7 @@ lines(no_ibu_na$ibu,ibu_reg$fitted.values,type='l',col="red")
 
 ```
 
-Its easy to see there is an obvious relationship between IBU and ABV. The coefficient on ABV is strong and statistically significant and the R Squared isn't too bad either. However, the plot suggests there may be heteroskedasticity.
-
-```{r,echo=FALSE}
-plot(ibu_reg$fitted.values,ibu_reg$residuals,main="Fitted VS Residuals",xlab="Fitted Values",ylab="Residuals",col="skyblue")
-```
-
-Looking at this plot, it makes the case for heteroskedasticity stronger. Let's run a BP test.
-
-```{r,echo=FALSE}
-lmtest::bptest(ibu_reg)
-```
-
-The BP test suggests there is heteroskedasticity. However, I believe this isn't too big of a problem because there is much more variety of beer around the 5-7% ABV range than in the 8%+ range. Same is true for the higher IBU levels.
-
+Its easy to see there is an obvious relationship between IBU and ABV. The coefficient on ABV is strong and statistically significant and the R Squared isn't too bad either. IBU, however, does not have a causal relationship on ABV. ABV is usually due to how many sugars are fermented during the making of the beer.
 
 
 ```{r,echo=FALSE}
@@ -175,7 +164,7 @@ beers_usethis = beers_full_stateAsString
 
 ```
 
-#The Myth of IPAs
+#The Myth of IPAs Being Stronger
 
 It is common to think that IPAs are stronger than other beers. I believe this is can be explained by looking into the bitterness relationship. 
 
@@ -210,7 +199,7 @@ After controlling for IBUs in the regression, it looks as if the previous regres
 
 So, what does this all mean?
 
-It means the other beer styles which would have the same IBU as an IPA would tend to also have a higher ABV. Since the alcohol content from beer comes from the fermentation of sugars from the malt, it makes sense that other beers with more malt would have a higher ABV after controlling for IBUs. So, "being an IPA" does not make a beer stronger. In the end, however, IPAs do tend to have a higher ABV in the market.
+It means the other beer styles which would have the same IBU as an IPA would tend to also have a higher ABV. Since the alcohol content from beer comes from the fermentation of sugars from the malt, it makes sense that other beers with more malt would have a higher ABV after controlling for IBUs. So, "being an IPA" does not make a beer stronger. An equally bitter beer that is not an IPA will tend to have more sugars in the brewing process to help balance the bitterness. The IPA style doesn't try to hide the bitterness with extra sugars, hence leading to an explanation of our results.
 
 #Breakdowning Down Beers by States
 
